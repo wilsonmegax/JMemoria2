@@ -1,151 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Text, SafeAreaView, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming,
-  withSequence,
-  withDelay
-} from 'react-native-reanimated';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Medal } from 'lucide-react-native';
-
-const { width } = Dimensions.get('window');
-
-type ScoreEntry = {
-  id: string;
-  playerName: string;
-  mode: 'single' | 'multi';
-  moves: number;
-  time: number;
-  date: string;
-};
+import { useGameStore } from '../../store/gameStore';
+import { Trophy } from 'lucide-react-native';
 
 export default function LeaderboardScreen() {
-  const [scores, setScores] = useState<ScoreEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadScores();
-  }, []);
-
-  const loadScores = async () => {
-    try {
-      const storedScores = await AsyncStorage.getItem('memoryGameScores');
-      if (storedScores) {
-        const parsedScores = JSON.parse(storedScores) as ScoreEntry[];
-        // Sort by moves (ascending) and then by time (ascending)
-        const sortedScores = parsedScores.sort((a, b) => {
-          if (a.moves !== b.moves) {
-            return a.moves - b.moves;
-          }
-          return a.time - b.time;
-        });
-        setScores(sortedScores);
-      }
-    } catch (error) {
-      console.error('Error loading scores:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const { bestScores } = useGameStore();
+  
+  // Format time
   const formatTime = (seconds: number) => {
+    if (seconds === 0) return 'No record yet';
+    
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
-
-  const getMedalColor = (index: number) => {
-    switch (index) {
-      case 0: return '#FFD700'; // Gold
-      case 1: return '#C0C0C0'; // Silver
-      case 2: return '#CD7F32'; // Bronze
-      default: return '#9E9E9E'; // Gray
-    }
-  };
-
-  const renderItem = ({ item, index }: { item: ScoreEntry; index: number }) => {
-    const animatedOpacity = useSharedValue(0);
-    const animatedTranslateY = useSharedValue(50);
-
-    useEffect(() => {
-      animatedOpacity.value = withDelay(
-        index * 100,
-        withTiming(1, { duration: 500 })
-      );
-      animatedTranslateY.value = withDelay(
-        index * 100,
-        withTiming(0, { duration: 500 })
-      );
-    }, []);
-
-    const animatedStyle = useAnimatedStyle(() => {
-      return {
-        opacity: animatedOpacity.value,
-        transform: [{ translateY: animatedTranslateY.value }],
-      };
-    });
-
-    return (
-      <Animated.View style={[styles.scoreItem, animatedStyle]}>
-        <View style={styles.rankContainer}>
-          <Medal size={24} color={getMedalColor(index)} />
-          <Text style={styles.rankText}>{index + 1}</Text>
-        </View>
-        <View style={styles.scoreDetails}>
-          <Text style={styles.playerName}>{item.playerName}</Text>
-          <Text style={styles.scoreMode}>
-            {item.mode === 'single' ? 'Um Jogador' : 'Dois Jogadores'}
-          </Text>
-        </View>
-        <View style={styles.scoreStats}>
-          <Text style={styles.scoreText}>{item.moves} jogadas</Text>
-          <Text style={styles.scoreText}>{formatTime(item.time)}</Text>
-        </View>
-      </Animated.View>
-    );
-  };
-
+  
   return (
     <LinearGradient
-      colors={['#1A1A2E', '#16213E', '#0F3460']}
+      colors={['#4c669f', '#3b5998', '#192f6a']}
       style={styles.container}
     >
-      <Animated.View 
-        style={styles.headerContainer}
-        entering={withSequence(
-          withTiming({ opacity: 0, transform: [{ translateY: -20 }] }, { duration: 0 }),
-          withTiming({ opacity: 1, transform: [{ translateY: 0 }] }, { duration: 500 })
-        )}
-      >
-        <Text style={styles.headerTitle}>Melhores Pontuações</Text>
-        <Text style={styles.headerSubtitle}>
-          Classificação baseada em menos jogadas e tempo
-        </Text>
-      </Animated.View>
-
-      {loading ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Carregando recordes...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Leaderboard</Text>
         </View>
-      ) : scores.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>Nenhum recorde ainda!</Text>
-          <Text style={styles.emptySubtext}>
-            Jogue algumas partidas para aparecer aqui.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={scores}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        
+        <ScrollView style={styles.content}>
+          <View style={styles.trophyContainer}>
+            <Trophy color="#FFD700" size={80} />
+          </View>
+          
+          <View style={styles.recordsContainer}>
+            <Text style={styles.recordsTitle}>Best Times</Text>
+            
+            <View style={styles.recordItem}>
+              <Text style={styles.difficultyLabel}>Easy</Text>
+              <Text style={styles.recordValue}>{formatTime(bestScores.easy)}</Text>
+            </View>
+            
+            <View style={styles.recordItem}>
+              <Text style={styles.difficultyLabel}>Medium</Text>
+              <Text style={styles.recordValue}>{formatTime(bestScores.medium)}</Text>
+            </View>
+            
+            <View style={styles.recordItem}>
+              <Text style={styles.difficultyLabel}>Hard</Text>
+              <Text style={styles.recordValue}>{formatTime(bestScores.hard)}</Text>
+            </View>
+          </View>
+          
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoText}>
+              Play in single player mode to set new records!
+            </Text>
+            <Text style={styles.infoText}>
+              The faster you complete the game, the better your score.
+            </Text>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </LinearGradient>
   );
 }
@@ -154,82 +68,69 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerContainer: {
-    padding: 20,
-    alignItems: 'center',
-    marginBottom: 10,
+  safeArea: {
+    flex: 1,
+    paddingTop: 40,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
+  header: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#E0E0E0',
+  title: {
+    fontSize: 28,
+    fontFamily: 'Nunito-ExtraBold',
+    color: '#fff',
     textAlign: 'center',
   },
-  listContent: {
-    padding: 16,
+  content: {
+    flex: 1,
+    padding: 20,
   },
-  scoreItem: {
+  trophyContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  recordsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 20,
+  },
+  recordsTitle: {
+    fontSize: 22,
+    fontFamily: 'Nunito-Bold',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  recordItem: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
-  rankContainer: {
-    width: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  difficultyLabel: {
+    fontSize: 18,
+    fontFamily: 'Nunito-Bold',
+    color: '#fff',
   },
-  rankText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 4,
+  recordValue: {
+    fontSize: 18,
+    fontFamily: 'Nunito-Regular',
+    color: '#fff',
   },
-  scoreDetails: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  playerName: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  scoreMode: {
-    color: '#E0E0E0',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  scoreStats: {
-    alignItems: 'flex-end',
-  },
-  scoreText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  infoContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 15,
     padding: 20,
   },
-  emptyText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
+  infoText: {
+    fontSize: 16,
+    fontFamily: 'Nunito-Regular',
+    color: '#fff',
     textAlign: 'center',
-  },
-  emptySubtext: {
-    color: '#E0E0E0',
-    fontSize: 14,
-    textAlign: 'center',
-    marginTop: 8,
+    marginBottom: 10,
   },
 });

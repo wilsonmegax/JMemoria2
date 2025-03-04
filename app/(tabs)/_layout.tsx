@@ -1,63 +1,72 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-import { TowerControl as GameController, Settings, Trophy } from 'lucide-react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Play, Users, Trophy, Settings } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#7C4DFF',
-        tabBarInactiveTintColor: '#9E9E9E',
-        tabBarStyle: {
-          backgroundColor: '#1A1A2E',
-          borderTopWidth: 0,
-          elevation: 0,
-          shadowOpacity: 0,
-          height: Platform.OS === 'ios' ? 90 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-        },
-        headerStyle: {
-          backgroundColor: '#1A1A2E',
-        },
-        headerTintColor: '#FFFFFF',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
-      }}>
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: '#4c669f',
+        tabBarInactiveTintColor: '#888',
+        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarBackground: () => 
+          Platform.OS === 'ios' ? (
+            <BlurView intensity={80} style={StyleSheet.absoluteFill} tint="light" />
+          ) : null,
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="single-player"
         options={{
-          title: 'Jogar',
+          title: 'Single Player',
           tabBarIcon: ({ color, size }) => (
-            <GameController size={size} color={color} />
+            <Play size={size} color={color} />
           ),
-          headerTitle: 'Jogo da Memória',
+        }}
+      />
+      <Tabs.Screen
+        name="two-player"
+        options={{
+          title: 'Two Players',
+          tabBarIcon: ({ color, size }) => (
+            <Users size={size} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="leaderboard"
         options={{
-          title: 'Recordes',
+          title: 'Leaderboard',
           tabBarIcon: ({ color, size }) => (
             <Trophy size={size} color={color} />
           ),
-          headerTitle: 'Recordes',
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Configurações',
+          title: 'Settings',
           tabBarIcon: ({ color, size }) => (
             <Settings size={size} color={color} />
           ),
-          headerTitle: 'Configurações',
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: Platform.OS === 'ios' ? 'transparent' : '#fff',
+    borderTopWidth: 0,
+    elevation: 0,
+    height: 60,
+  },
+  tabBarLabel: {
+    fontFamily: 'Nunito-Regular',
+    fontSize: 12,
+  },
+});
